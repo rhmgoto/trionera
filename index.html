@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>トリオネラ</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Trionera</p>
+        <h1>トリオネラ</h1>
+      </div>
+      <div class="period-badge" id="selectedPeriodLabel">期間を読み込み中</div>
+    </header>
+
+    <main class="app-shell">
+      <nav class="tabs" aria-label="機能タブ">
+        <button class="tab-button active" data-tab="chart">グラフ</button>
+        <button class="tab-button" data-tab="timeline">年表</button>
+        <button class="tab-button" data-tab="analysis">イベント分析</button>
+        <button class="tab-button" data-tab="compare">比較</button>
+        <button class="tab-button" data-tab="import">データ取込</button>
+        <button class="tab-button" data-tab="help">ヘルプ</button>
+      </nav>
+
+      <section class="tab-panel active" id="tab-chart">
+        <div class="dashboard-grid">
+          <section class="control-panel">
+            <h2>期間選択</h2>
+            <div class="field-row">
+              <label for="yearSelect">年</label>
+              <select id="yearSelect"></select>
+            </div>
+            <div class="field-row">
+              <label for="monthSelect">月</label>
+              <select id="monthSelect"></select>
+            </div>
+            <div class="step-buttons">
+              <button id="prevPeriod" type="button">前へ</button>
+              <button id="todayLikePeriod" type="button">最新へ</button>
+              <button id="nextPeriod" type="button">次へ</button>
+            </div>
+
+            <h3>表示期間</h3>
+            <div class="segmented" id="rangeButtons"></div>
+
+            <h3>表示系列</h3>
+            <div class="toggle-stack">
+              <label class="big-toggle">
+                <input type="checkbox" value="nikkei" checked>
+                <span>日経平均</span>
+              </label>
+              <label class="big-toggle">
+                <input type="checkbox" value="dow" checked>
+                <span>NYダウ</span>
+              </label>
+              <label class="big-toggle">
+                <input type="checkbox" value="usdjpy" checked>
+                <span>ドル円</span>
+              </label>
+            </div>
+
+            <h3>グラフ形式</h3>
+            <div class="mode-grid" id="modeButtons"></div>
+          </section>
+
+          <section class="chart-panel">
+            <div class="chart-toolbar">
+              <div>
+                <h2>マーケット推移</h2>
+                <p id="chartSubLabel">ドル円は数字が上がるほど円安ドル高です。</p>
+              </div>
+              <button type="button" id="resetSampleData">サンプルに戻す</button>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="mainChart"></canvas>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-timeline">
+        <div class="section-head">
+          <div>
+            <h2>イベント年表</h2>
+            <p>イベントをタップすると、分析画面に反映されます。</p>
+          </div>
+          <div class="filter-row">
+            <input id="eventSearch" type="search" placeholder="イベント検索">
+            <select id="importanceFilter" aria-label="重要度フィルター">
+              <option value="all">すべての重要度</option>
+              <option value="5">重要度5のみ</option>
+              <option value="4">重要度4以上</option>
+              <option value="3">重要度3以上</option>
+            </select>
+          </div>
+        </div>
+        <div class="timeline-layout">
+          <div class="timeline-list" id="timelineList"></div>
+          <form class="event-form" id="eventForm">
+            <h2 id="eventFormTitle">イベント登録</h2>
+            <p class="form-note">オリンピック、企業創業、家族の記念日なども登録できます。保存後にイベントをタップすると前後の指標を確認できます。</p>
+            <input type="hidden" id="eventId">
+            <div class="form-grid">
+              <label>日付<input id="eventDate" type="date" required></label>
+              <label>タイトル<input id="eventTitle" type="text" required placeholder="例: 東京オリンピック開会式"></label>
+              <label>カテゴリ
+                <select id="eventCategory"></select>
+              </label>
+              <label>重要度
+                <select id="eventImportance">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5" selected>5</option>
+                </select>
+              </label>
+              <label>関連国・地域<input id="eventRegion" type="text" placeholder="日本、米国など"></label>
+            </div>
+            <label>説明<textarea id="eventDescription" rows="3"></textarea></label>
+            <label>メモ<textarea id="eventMemo" rows="3"></textarea></label>
+            <div class="form-actions">
+              <button type="submit">保存</button>
+              <button type="button" id="clearEventForm">新規入力</button>
+              <button type="button" id="deleteEvent" class="danger">削除</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-analysis">
+        <div class="section-head">
+          <div>
+            <h2>イベント影響分析</h2>
+            <p id="selectedEventLabel">イベントを選択してください。</p>
+          </div>
+          <select id="analysisEventSelect" aria-label="分析イベント選択"></select>
+        </div>
+        <div class="analysis-grid">
+          <section class="chart-panel">
+            <div class="chart-wrap compact">
+              <canvas id="eventChart"></canvas>
+            </div>
+          </section>
+          <section class="table-card">
+            <h3>前後比較</h3>
+            <div class="table-scroll">
+              <table>
+                <thead id="analysisHead"></thead>
+                <tbody id="analysisBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-compare">
+        <div class="section-head">
+          <div>
+            <h2>イベント比較</h2>
+            <p>複数イベントのイベント後リターンを横並びで見ます。</p>
+          </div>
+          <button type="button" id="selectImportantEvents">重要イベントを選択</button>
+        </div>
+        <div class="compare-layout">
+          <div class="compare-picker" id="comparePicker"></div>
+          <div class="table-card">
+            <h3>比較表</h3>
+            <div class="table-scroll">
+              <table>
+                <thead id="compareHead"></thead>
+                <tbody id="compareBody"></tbody>
+              </table>
+            </div>
+            <div class="rankings" id="rankings"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-import">
+        <div class="import-grid">
+          <section class="import-card">
+            <h2>CSVインポート</h2>
+            <p>基本形式: date,nikkei,dow,usdjpy。空欄は欠損値として読み込みます。</p>
+            <label class="file-picker">
+              <input id="csvFile" type="file" accept=".csv,text/csv">
+              CSVファイルを選択
+            </label>
+            <div class="form-grid">
+              <label>日付列<input id="mapDate" value="date"></label>
+              <label>日経平均列<input id="mapNikkei" value="nikkei"></label>
+              <label>NYダウ列<input id="mapDow" value="dow"></label>
+              <label>ドル円列<input id="mapUsdjpy" value="usdjpy"></label>
+            </div>
+            <div class="form-actions">
+              <button type="button" id="importCsv">読み込む</button>
+              <button type="button" id="replaceWithImported">読み込んだデータで置き換え</button>
+              <button type="button" id="exportEvents">イベントJSONを書き出す</button>
+            </div>
+            <p class="status" id="importStatus">まだCSVは読み込まれていません。</p>
+          </section>
+          <section class="table-card">
+            <h3>データ概要</h3>
+            <dl class="data-summary" id="dataSummary"></dl>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-help">
+        <article class="help-card">
+          <h2>ヘルプ</h2>
+          <p>このアプリは、過去のマーケット指標と歴史イベントを重ねて眺めるための個人用アプリです。</p>
+          <p>表示される分析は単純な騰落率計算であり、因果関係を証明するものではありません。</p>
+          <p>実際の投資判断には使用しないでください。投資は自己責任です。</p>
+          <h3>使い方</h3>
+          <p>グラフで期間を選び、年表でイベントを追加します。イベントを選択すると、前後の市場変化率を自動計算します。</p>
+          <p>歴史イベントだけでなく、オリンピック、有名企業の創業、家族の誕生日など、個人的なイベントも自由に登録できます。</p>
+          <p>ドル円は「数字が上がる＝円安ドル高」です。下がる場合は円高方向として表示します。</p>
+        </article>
+      </section>
+    </main>
+
+    <script src="sample-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
