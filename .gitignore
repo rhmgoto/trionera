@@ -1,0 +1,6 @@
+# Temporary raw data downloads used while building market-data-daily-1970.csv
+*_yahoo.json
+*_github.csv
+fred_*.csv
+nkx_stooq.csv
+dji_stooq.csv
