@@ -125,6 +125,7 @@ const SAMPLE_MARKET_DATA = [
   { date: "2012-03-12", nikkei: 9889, dow: 12959, usdjpy: 82 },
 
   { date: "2012-06-26", nikkei: 8663, dow: 12534, usdjpy: 80 },
+  { date: "2012-08-31", nikkei: 8839, dow: 13091, usdjpy: 78 },
   { date: "2012-11-26", nikkei: 9388, dow: 12967, usdjpy: 82 },
   { date: "2012-12-25", nikkei: 10080, dow: 13139, usdjpy: 84 },
   { date: "2012-12-27", nikkei: 10322, dow: 13096, usdjpy: 86 },

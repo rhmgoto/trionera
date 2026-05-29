@@ -66,9 +66,9 @@ const ANALYSIS_OFFSETS = [
   { label: "1年後", days: 365 }
 ];
 
-// イベント分析の基準日は、休場日を考慮して近い市場日を使います。
-// ただし何か月も離れたデータを勝手に使うと分析が壊れるため、基準日は10日以内に限定します。
-const EVENT_BASE_TOLERANCE_DAYS = 10;
+// イベント分析の基準日は、休場日やサンプルデータの粗さを考慮して近い市場日を使います。
+// ただし何か月も離れたデータを勝手に使うと分析が壊れるため、約3か月以内に限定します。
+const EVENT_BASE_TOLERANCE_DAYS = 95;
 
 const state = {
   marketData: [],
@@ -601,7 +601,7 @@ function renderAnalysis() {
   const base = findNearestMarketRow(event.date, "nearest", EVENT_BASE_TOLERANCE_DAYS);
   $("selectedEventLabel").textContent = base
     ? `${event.date} ${event.title} / 基準データ: ${base.date}`
-    : `${event.date} ${event.title} / イベント日前後10日以内の市場データがありません`;
+    : `${event.date} ${event.title} / イベント日前後約3か月以内の市場データがありません`;
   $("analysisEventSelect").value = event.id;
   fillEventForm(event);
 
@@ -638,7 +638,7 @@ function buildAnalysisRows(event) {
   return ANALYSIS_OFFSETS.map((offset) => {
     const targetDate = formatDate(addDays(parseDate(event.date), offset.days));
     const toleranceDays = analysisToleranceDays(offset.days);
-    const row = base ? findNearestMarketRow(targetDate, offset.days < 0 ? "before" : "after", toleranceDays) : null;
+    const row = base ? findNearestMarketRow(targetDate, analysisLookupMode(offset.days), toleranceDays) : null;
     const nikkei = percentChange(base?.nikkei, row?.nikkei);
     const dow = percentChange(base?.dow, row?.dow);
     const usdjpy = percentChange(base?.usdjpy, row?.usdjpy);
@@ -652,6 +652,12 @@ function buildAnalysisRows(event) {
       fxDirection: fxDirection(usdjpy)
     };
   });
+}
+
+function analysisLookupMode(offsetDays) {
+  if (offsetDays < 0 && Math.abs(offsetDays) <= 7) return "before";
+  if (offsetDays > 0 && Math.abs(offsetDays) <= 7) return "after";
+  return "nearest";
 }
 
 function analysisToleranceDays(offsetDays) {
