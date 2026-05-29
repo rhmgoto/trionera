@@ -12,6 +12,46 @@
 */
 
 const SAMPLE_MARKET_DATA = [
+  { date: "1970-01-05", nikkei: 2358, dow: 809, usdjpy: 360 },
+  { date: "1970-06-30", nikkei: 2119, dow: 683, usdjpy: 360 },
+  { date: "1970-12-30", nikkei: 1987, dow: 839, usdjpy: 358 },
+
+  { date: "1971-01-04", nikkei: 2001, dow: 830, usdjpy: 358 },
+  { date: "1971-08-16", nikkei: 2600, dow: 888, usdjpy: 350 },
+  { date: "1971-12-30", nikkei: 2714, dow: 890, usdjpy: 315 },
+
+  { date: "1972-01-04", nikkei: 2713, dow: 902, usdjpy: 314 },
+  { date: "1972-06-30", nikkei: 3482, dow: 929, usdjpy: 302 },
+  { date: "1972-12-29", nikkei: 5207, dow: 1020, usdjpy: 302 },
+
+  { date: "1973-01-04", nikkei: 5359, dow: 1031, usdjpy: 302 },
+  { date: "1973-10-17", nikkei: 4560, dow: 964, usdjpy: 266 },
+  { date: "1973-12-28", nikkei: 4307, dow: 850, usdjpy: 280 },
+
+  { date: "1974-01-04", nikkei: 4234, dow: 855, usdjpy: 280 },
+  { date: "1974-06-28", nikkei: 4700, dow: 802, usdjpy: 291 },
+  { date: "1974-12-30", nikkei: 3818, dow: 616, usdjpy: 300 },
+
+  { date: "1975-01-06", nikkei: 3777, dow: 632, usdjpy: 300 },
+  { date: "1975-06-30", nikkei: 4404, dow: 878, usdjpy: 296 },
+  { date: "1975-12-30", nikkei: 4359, dow: 852, usdjpy: 305 },
+
+  { date: "1976-01-05", nikkei: 4419, dow: 858, usdjpy: 305 },
+  { date: "1976-06-30", nikkei: 4777, dow: 1004, usdjpy: 298 },
+  { date: "1976-12-30", nikkei: 4991, dow: 1004, usdjpy: 293 },
+
+  { date: "1977-01-04", nikkei: 4998, dow: 999, usdjpy: 293 },
+  { date: "1977-06-30", nikkei: 5067, dow: 906, usdjpy: 268 },
+  { date: "1977-12-30", nikkei: 4865, dow: 831, usdjpy: 240 },
+
+  { date: "1978-01-04", nikkei: 4859, dow: 817, usdjpy: 240 },
+  { date: "1978-06-30", nikkei: 5543, dow: 821, usdjpy: 205 },
+  { date: "1978-12-29", nikkei: 6001, dow: 805, usdjpy: 195 },
+
+  { date: "1979-01-04", nikkei: 6041, dow: 811, usdjpy: 195 },
+  { date: "1979-06-29", nikkei: 6203, dow: 841, usdjpy: 219 },
+  { date: "1979-12-28", nikkei: 6569, dow: 839, usdjpy: 240 },
+
   { date: "1980-01-04", nikkei: 6560, dow: 824, usdjpy: 237 },
   { date: "1980-01-07", nikkei: 6601, dow: 832, usdjpy: 238 },
   { date: "1980-02-01", nikkei: 6670, dow: 870, usdjpy: 241 },
@@ -93,7 +133,21 @@ const SAMPLE_MARKET_DATA = [
   { date: "2013-06-26", nikkei: 12834, dow: 14910, usdjpy: 98 },
   { date: "2013-12-26", nikkei: 16174, dow: 16479, usdjpy: 104 },
 
+  { date: "2014-01-10", nikkei: 15912, dow: 16437, usdjpy: 104 },
+  { date: "2014-04-10", nikkei: 14300, dow: 16170, usdjpy: 102 },
+  { date: "2014-07-10", nikkei: 15217, dow: 16915, usdjpy: 101 },
+  { date: "2014-10-10", nikkei: 15301, dow: 16544, usdjpy: 108 },
+  { date: "2014-12-30", nikkei: 17451, dow: 17823, usdjpy: 120 },
+  { date: "2015-01-09", nikkei: 17197, dow: 17737, usdjpy: 118 },
+  { date: "2015-01-13", nikkei: 17087, dow: 17613, usdjpy: 118 },
+  { date: "2015-02-10", nikkei: 17652, dow: 17868, usdjpy: 119 },
+  { date: "2015-04-10", nikkei: 19907, dow: 18057, usdjpy: 120 },
+  { date: "2015-07-10", nikkei: 19779, dow: 17760, usdjpy: 122 },
+  { date: "2015-10-09", nikkei: 18438, dow: 17084, usdjpy: 120 },
+  { date: "2015-12-30", nikkei: 19034, dow: 17425, usdjpy: 120 },
+
   { date: "2016-01-04", nikkei: 18450, dow: 17149, usdjpy: 119 },
+  { date: "2016-01-08", nikkei: 17697, dow: 16346, usdjpy: 118 },
   { date: "2016-05-24", nikkei: 16498, dow: 17706, usdjpy: 110 },
   { date: "2016-06-17", nikkei: 15599, dow: 17675, usdjpy: 104 },
   { date: "2016-06-23", nikkei: 16238, dow: 18011, usdjpy: 106 },

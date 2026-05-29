@@ -66,6 +66,10 @@ const ANALYSIS_OFFSETS = [
   { label: "1年後", days: 365 }
 ];
 
+// イベント分析の基準日は、休場日を考慮して近い市場日を使います。
+// ただし何か月も離れたデータを勝手に使うと分析が壊れるため、基準日は10日以内に限定します。
+const EVENT_BASE_TOLERANCE_DAYS = 10;
+
 const state = {
   marketData: [],
   events: [],
@@ -95,6 +99,7 @@ function init() {
 
 function loadState() {
   state.marketData = readJson(STORAGE_KEYS.marketData, SAMPLE_MARKET_DATA).map(normalizeMarketRow).filter(Boolean);
+  backfillBundledSampleRows();
   state.events = readJson(STORAGE_KEYS.events, SAMPLE_EVENTS).map(normalizeEvent).filter(Boolean);
   const saved = readJson(STORAGE_KEYS.settings, {});
   Object.assign(state, {
@@ -107,6 +112,20 @@ function loadState() {
   });
   sortMarketData();
   sortEvents();
+}
+
+function backfillBundledSampleRows() {
+  // 古いサンプルをlocalStorageに保存済みの場合、新しく追加したサンプル行だけ補充します。
+  // CSVで本格的なデータを入れている場合は混ぜないよう、少量のプロトタイプデータだけ対象にします。
+  if (state.marketData.length > 180) return;
+  const existingDates = new Set(state.marketData.map((row) => row.date));
+  const missingRows = SAMPLE_MARKET_DATA
+    .map(normalizeMarketRow)
+    .filter((row) => row && !existingDates.has(row.date));
+  if (!missingRows.length) return;
+  state.marketData.push(...missingRows);
+  sortMarketData();
+  localStorage.setItem(STORAGE_KEYS.marketData, JSON.stringify(state.marketData));
 }
 
 function readJson(key, fallback) {
@@ -365,6 +384,7 @@ function renderEventChart() {
   if (!window.Chart) return;
   const event = selectedEvent();
   if (!event) return;
+  const baseRow = findNearestMarketRow(event.date, "nearest", EVENT_BASE_TOLERANCE_DAYS);
   const start = formatDate(addDays(parseDate(event.date), -365));
   const end = formatDate(addDays(parseDate(event.date), 365));
   const rows = state.marketData.filter((row) => row.date >= start && row.date <= end);
@@ -379,7 +399,8 @@ function renderEventChart() {
     tension: 0.2,
     spanGaps: true
   }));
-  eventChart = drawLineChart(eventChart, $("eventChart"), labels, datasets, [findNearestDateInRows(event.date, rows)].filter(Boolean), "イベント日前後の指数");
+  const eventMarkerDate = baseRow && rows.some((row) => row.date === baseRow.date) ? baseRow.date : null;
+  eventChart = drawLineChart(eventChart, $("eventChart"), labels, datasets, [eventMarkerDate].filter(Boolean), "イベント日前後の指数");
 }
 
 function drawLineChart(existing, canvas, labels, datasets, eventDates, yLabel, useDualAxis = false) {
@@ -577,7 +598,10 @@ function renderAnalysis() {
     return;
   }
   state.selectedEventId = event.id;
-  $("selectedEventLabel").textContent = `${event.date} ${event.title}`;
+  const base = findNearestMarketRow(event.date, "nearest", EVENT_BASE_TOLERANCE_DAYS);
+  $("selectedEventLabel").textContent = base
+    ? `${event.date} ${event.title} / 基準データ: ${base.date}`
+    : `${event.date} ${event.title} / イベント日前後10日以内の市場データがありません`;
   $("analysisEventSelect").value = event.id;
   fillEventForm(event);
 
@@ -610,16 +634,17 @@ function renderAnalysis() {
 // イベント分析では、イベント当日に市場データがない場合でも近い営業日の値を使います。
 // 前の日を見る項目は直近の前データ、後の日を見る項目は直近の後データを優先します。
 function buildAnalysisRows(event) {
-  const base = findNearestMarketRow(event.date, "nearest");
+  const base = findNearestMarketRow(event.date, "nearest", EVENT_BASE_TOLERANCE_DAYS);
   return ANALYSIS_OFFSETS.map((offset) => {
     const targetDate = formatDate(addDays(parseDate(event.date), offset.days));
-    const row = findNearestMarketRow(targetDate, offset.days < 0 ? "before" : "after");
+    const toleranceDays = analysisToleranceDays(offset.days);
+    const row = base ? findNearestMarketRow(targetDate, offset.days < 0 ? "before" : "after", toleranceDays) : null;
     const nikkei = percentChange(base?.nikkei, row?.nikkei);
     const dow = percentChange(base?.dow, row?.dow);
     const usdjpy = percentChange(base?.usdjpy, row?.usdjpy);
     return {
       label: offset.label,
-      usedDate: row?.date || "",
+      usedDate: row?.date || "データなし",
       nikkei,
       dow,
       usdjpy,
@@ -627,6 +652,16 @@ function buildAnalysisRows(event) {
       fxDirection: fxDirection(usdjpy)
     };
   });
+}
+
+function analysisToleranceDays(offsetDays) {
+  const absoluteDays = Math.abs(offsetDays);
+  if (absoluteDays <= 1) return 10;
+  if (absoluteDays <= 7) return 14;
+  if (absoluteDays <= 30) return 45;
+  if (absoluteDays <= 91) return 75;
+  if (absoluteDays <= 182) return 120;
+  return 180;
 }
 
 function renderCompare() {
@@ -916,7 +951,7 @@ function availableYears() {
 }
 
 // 市場は休場日があるため、指定日にぴったりの行がなくても用途別に近い行を返します。
-function findNearestMarketRow(dateString, mode = "nearest") {
+function findNearestMarketRow(dateString, mode = "nearest", maxDistanceDays = null) {
   if (!state.marketData.length) return null;
   const target = parseDate(dateString).getTime();
   let best = null;
@@ -931,7 +966,11 @@ function findNearestMarketRow(dateString, mode = "nearest") {
       bestDistance = distance;
     }
   }
+  if (best && maxDistanceDays !== null && bestDistance > maxDistanceDays * 24 * 60 * 60 * 1000) {
+    return null;
+  }
   if (best) return best;
+  if (maxDistanceDays !== null) return null;
   return mode === "before" ? state.marketData[0] : state.marketData[state.marketData.length - 1];
 }
 
