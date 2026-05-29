@@ -1,9 +1,11 @@
 market-data-daily-1970.csv
+Columns: date, nikkei, dow, usdjpy, btc.
 Rows are calendar days from 1970-01-01 to 2026-05-29.
 Weekend/holiday/missing dates are forward-filled from the latest available observation per series.
 nikkei: Yahoo Finance chart API, ^N225 close.
 dow: fja05680/dow-sp500-100-years DJA.csv close through 1991-12-31; Yahoo Finance chart API ^DJI close from 1992-01-01 onward.
 usdjpy: FRED DEXJPUS. Values begin 1971-01-04; 1970 rows are blank until first observation.
-Raw observations used: {'nikkei': 13868, 'dow': 14222, 'usdjpy': 13884}
-Filled row counts: {'nikkei': 20599, 'dow': 20602, 'usdjpy': 20235}
+btc: Yahoo Finance chart API, BTC-USD close. Values begin 2014-09-17; earlier rows are blank.
+Raw observations used: {'nikkei': 13868, 'dow': 14222, 'usdjpy': 13884, 'btc': 4273}
+Filled row counts: {'nikkei': 20599, 'dow': 20602, 'usdjpy': 20235, 'btc': 4274}
 Total rows: 20603

@@ -147,6 +147,13 @@ h3 {
   font-weight: 800;
 }
 
+.updated-label {
+  margin: 0.55rem 0 0;
+  color: #d6deef;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .app-shell {
   padding: 1rem clamp(0.75rem, 3vw, 2rem) 6rem;
 }

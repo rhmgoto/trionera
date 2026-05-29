@@ -12,6 +12,7 @@
       <div>
         <p class="eyebrow">Trionera</p>
         <h1>トリオネラ</h1>
+        <p class="updated-label" id="appUpdatedLabel">最終更新: 確認中</p>
       </div>
       <div class="period-badge" id="selectedPeriodLabel">期間を読み込み中</div>
     </header>
@@ -61,6 +62,10 @@
                 <input type="checkbox" value="usdjpy" checked>
                 <span>ドル円</span>
               </label>
+              <label class="big-toggle">
+                <input type="checkbox" value="btc">
+                <span>ビットコイン</span>
+              </label>
             </div>
 
             <h3>グラフ形式</h3>
@@ -71,7 +76,7 @@
             <div class="chart-toolbar">
               <div>
                 <h2>マーケット推移</h2>
-                <p id="chartSubLabel">ドル円は数字が上がるほど円安ドル高です。</p>
+                <p id="chartSubLabel">ドル円は数字が上がるほど円安ドル高です。ビットコインは米ドル建て価格です。</p>
               </div>
               <button type="button" id="resetSampleData">サンプルに戻す</button>
             </div>
@@ -195,6 +200,7 @@
               <label>日経平均列<input id="mapNikkei" value="nikkei"></label>
               <label>NYダウ列<input id="mapDow" value="dow"></label>
               <label>ドル円列<input id="mapUsdjpy" value="usdjpy"></label>
+              <label>ビットコイン列<input id="mapBtc" value="btc"></label>
             </div>
             <div class="form-actions">
               <button type="button" id="importCsv">読み込む</button>
@@ -220,6 +226,7 @@
           <p>グラフで期間を選び、年表でイベントを追加します。イベントを選択すると、前後の市場変化率を自動計算します。</p>
           <p>歴史イベントだけでなく、オリンピック、有名企業の創業、家族の誕生日など、個人的なイベントも自由に登録できます。</p>
           <p>ドル円は「数字が上がる＝円安ドル高」です。下がる場合は円高方向として表示します。</p>
+          <p>ビットコインは米ドル建て価格です。データが存在しない古い期間は空欄になります。</p>
         </article>
       </section>
     </main>

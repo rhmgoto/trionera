@@ -9,10 +9,13 @@ const STORAGE_KEYS = {
   settings: "mhe.settings.v1"
 };
 
+const APP_LAST_UPDATED = "2026-05-29 17:45";
+
 const SERIES = {
   nikkei: { label: "日経平均", color: "#2563eb" },
   dow: { label: "NYダウ", color: "#b98928" },
-  usdjpy: { label: "ドル円", color: "#0f766e" }
+  usdjpy: { label: "ドル円", color: "#0f766e" },
+  btc: { label: "ビットコイン", color: "#f97316" }
 };
 
 const CATEGORIES = [
@@ -91,6 +94,7 @@ document.addEventListener("DOMContentLoaded", init);
 
 function init() {
   loadState();
+  $("appUpdatedLabel").textContent = `最終更新: ${APP_LAST_UPDATED}`;
   buildStaticControls();
   bindEvents();
   syncControlsFromState();
@@ -115,15 +119,26 @@ function loadState() {
 }
 
 function backfillBundledSampleRows() {
-  // 古いサンプルをlocalStorageに保存済みの場合、新しく追加したサンプル行だけ補充します。
+  // 古いサンプルをlocalStorageに保存済みの場合、新しく追加したサンプル行やBTCなどの追加列を補充します。
   // CSVで本格的なデータを入れている場合は混ぜないよう、少量のプロトタイプデータだけ対象にします。
   if (state.marketData.length > 180) return;
-  const existingDates = new Set(state.marketData.map((row) => row.date));
-  const missingRows = SAMPLE_MARKET_DATA
-    .map(normalizeMarketRow)
-    .filter((row) => row && !existingDates.has(row.date));
-  if (!missingRows.length) return;
-  state.marketData.push(...missingRows);
+  const existingByDate = new Map(state.marketData.map((row) => [row.date, row]));
+  let changed = false;
+  SAMPLE_MARKET_DATA.map(normalizeMarketRow).filter(Boolean).forEach((sampleRow) => {
+    const existing = existingByDate.get(sampleRow.date);
+    if (!existing) {
+      state.marketData.push(sampleRow);
+      changed = true;
+      return;
+    }
+    Object.keys(SERIES).forEach((key) => {
+      if ((existing[key] === null || existing[key] === undefined) && sampleRow[key] !== null && sampleRow[key] !== undefined) {
+        existing[key] = sampleRow[key];
+        changed = true;
+      }
+    });
+  });
+  if (!changed) return;
   sortMarketData();
   localStorage.setItem(STORAGE_KEYS.marketData, JSON.stringify(state.marketData));
 }
@@ -159,7 +174,8 @@ function normalizeMarketRow(row) {
     date: row.date,
     nikkei: numberOrNull(row.nikkei),
     dow: numberOrNull(row.dow),
-    usdjpy: numberOrNull(row.usdjpy)
+    usdjpy: numberOrNull(row.usdjpy),
+    btc: numberOrNull(row.btc)
   };
 }
 
@@ -361,7 +377,7 @@ function renderMainChart() {
     data: transformSeries(rows, key, state.mode),
     borderColor: SERIES[key].color,
     backgroundColor: SERIES[key].color,
-    yAxisID: key === "usdjpy" && state.mode === "raw" ? "yFx" : "y",
+    yAxisID: rawAxisFor(key),
     borderWidth: 3,
     pointRadius: rows.length < 40 ? 4 : 2,
     tension: 0.22,
@@ -374,10 +390,17 @@ function renderMainChart() {
         .filter(Boolean)
     : [];
   $("chartSubLabel").textContent =
-    state.mode === "raw" && state.selectedSeries.includes("usdjpy")
-      ? "株価は左軸、ドル円は右軸で表示しています。ドル円は数字が上がるほど円安ドル高です。"
-      : "ドル円は数字が上がるほど円安ドル高です。";
+    state.mode === "raw" && (state.selectedSeries.includes("usdjpy") || state.selectedSeries.includes("btc"))
+      ? "実数値では日経平均・NYダウは左軸、ドル円とビットコインは右軸で表示します。ビットコインは米ドル建て価格です。"
+      : "ドル円は数字が上がるほど円安ドル高です。ビットコインは米ドル建て価格です。";
   mainChart = drawLineChart(mainChart, $("mainChart"), labels, datasets, eventDates, chartYAxisLabel(), state.mode === "raw");
+}
+
+function rawAxisFor(key) {
+  if (state.mode !== "raw") return "y";
+  if (key === "usdjpy") return "yFx";
+  if (key === "btc") return "yBtc";
+  return "y";
 }
 
 function renderEventChart() {
@@ -456,6 +479,18 @@ function drawLineChart(existing, canvas, labels, datasets, eventDates, yLabel, u
       ticks: {
         callback(value) {
           return `${value}円`;
+        }
+      }
+    };
+  }
+  if (useDualAxis && datasets.some((dataset) => dataset.yAxisID === "yBtc")) {
+    scales.yBtc = {
+      position: "right",
+      title: { display: true, text: "ビットコイン USD" },
+      grid: { drawOnChartArea: false },
+      ticks: {
+        callback(value) {
+          return `$${Number(value).toLocaleString("ja-JP")}`;
         }
       }
     };
@@ -613,6 +648,7 @@ function renderAnalysis() {
       <th>日経平均</th>
       <th>NYダウ</th>
       <th>ドル円</th>
+      <th>ビットコイン</th>
       <th>日経平均との差</th>
       <th>為替方向</th>
     </tr>
@@ -624,6 +660,7 @@ function renderAnalysis() {
       <td class="${valueClass(row.nikkei)}">${formatPercent(row.nikkei)}</td>
       <td class="${valueClass(row.dow)}">${formatPercent(row.dow)}</td>
       <td class="${valueClass(row.usdjpy)}">${formatPercent(row.usdjpy)}</td>
+      <td class="${valueClass(row.btc)}">${formatPercent(row.btc)}</td>
       <td class="${valueClass(row.spread)}">${formatPercent(row.spread)}</td>
       <td>${row.fxDirection}</td>
     </tr>
@@ -642,12 +679,14 @@ function buildAnalysisRows(event) {
     const nikkei = percentChange(base?.nikkei, row?.nikkei);
     const dow = percentChange(base?.dow, row?.dow);
     const usdjpy = percentChange(base?.usdjpy, row?.usdjpy);
+    const btc = percentChange(base?.btc, row?.btc);
     return {
       label: offset.label,
       usedDate: row?.date || "データなし",
       nikkei,
       dow,
       usdjpy,
+      btc,
       spread: nikkei !== null && dow !== null ? nikkei - dow : null,
       fxDirection: fxDirection(usdjpy)
     };
@@ -695,6 +734,7 @@ function renderCompareTable() {
       <th>日経 1年後</th>
       <th>NYダウ 1週後</th>
       <th>ドル円 1か月後</th>
+      <th>BTC 1か月後</th>
     </tr>
   `;
   const compareRows = events.map(compareEventMetrics);
@@ -707,6 +747,7 @@ function renderCompareTable() {
       <td class="${valueClass(row.nikkei365)}">${formatPercent(row.nikkei365)}</td>
       <td class="${valueClass(row.dow7)}">${formatPercent(row.dow7)}</td>
       <td class="${valueClass(row.usdjpy30)}">${formatPercent(row.usdjpy30)} ${fxDirection(row.usdjpy30)}</td>
+      <td class="${valueClass(row.btc30)}">${formatPercent(row.btc30)}</td>
     </tr>
   `).join("");
   renderRankings(compareRows);
@@ -723,7 +764,8 @@ function compareEventMetrics(event) {
     nikkei91: percentChange(base?.nikkei, after(91)?.nikkei),
     nikkei365: percentChange(base?.nikkei, after(365)?.nikkei),
     dow7: percentChange(base?.dow, after(7)?.dow),
-    usdjpy30: percentChange(base?.usdjpy, after(30)?.usdjpy)
+    usdjpy30: percentChange(base?.usdjpy, after(30)?.usdjpy),
+    btc30: percentChange(base?.btc, after(30)?.btc)
   };
 }
 
@@ -735,7 +777,8 @@ function renderRankings(rows) {
     ["日経平均が一番下がったイベント", minBy("nikkei30"), "nikkei30"],
     ["日経平均が一番上がったイベント", maxBy("nikkei30"), "nikkei30"],
     ["円高が進んだイベント", minBy("usdjpy30"), "usdjpy30"],
-    ["NYダウが大きく反応したイベント", maxAbsBy(rows, "dow7"), "dow7"]
+    ["NYダウが大きく反応したイベント", maxAbsBy(rows, "dow7"), "dow7"],
+    ["ビットコインが大きく反応したイベント", maxAbsBy(rows, "btc30"), "btc30"]
   ];
   $("rankings").innerHTML = cards.map(([title, row, key]) => `
     <div class="ranking-card">
@@ -823,7 +866,8 @@ async function importCsvFile() {
     date: $("mapDate").value.trim(),
     nikkei: $("mapNikkei").value.trim(),
     dow: $("mapDow").value.trim(),
-    usdjpy: $("mapUsdjpy").value.trim()
+    usdjpy: $("mapUsdjpy").value.trim(),
+    btc: $("mapBtc").value.trim()
   };
   state.importedData = parseMarketCsv(text, mapping);
   $("importStatus").textContent = `${state.importedData.length}件のデータを読み込みました。`;
@@ -856,7 +900,8 @@ function parseMarketCsv(text, mapping) {
     date: headerIndex(mapping.date || "date"),
     nikkei: headerIndex(mapping.nikkei || "nikkei"),
     dow: headerIndex(mapping.dow || "dow"),
-    usdjpy: headerIndex(mapping.usdjpy || "usdjpy")
+    usdjpy: headerIndex(mapping.usdjpy || "usdjpy"),
+    btc: headerIndex(mapping.btc || "btc")
   };
   if (indexes.date < 0) return [];
   return lines.slice(1).map((line) => {
@@ -865,7 +910,8 @@ function parseMarketCsv(text, mapping) {
       date: cells[indexes.date]?.trim(),
       nikkei: indexes.nikkei >= 0 ? cells[indexes.nikkei]?.trim() : "",
       dow: indexes.dow >= 0 ? cells[indexes.dow]?.trim() : "",
-      usdjpy: indexes.usdjpy >= 0 ? cells[indexes.usdjpy]?.trim() : ""
+      usdjpy: indexes.usdjpy >= 0 ? cells[indexes.usdjpy]?.trim() : "",
+      btc: indexes.btc >= 0 ? cells[indexes.btc]?.trim() : ""
     });
   }).filter(Boolean).sort((a, b) => a.date.localeCompare(b.date));
 }
@@ -911,6 +957,7 @@ function renderDataSummary() {
     <dt>市場データ件数</dt><dd>${state.marketData.length}件</dd>
     <dt>期間</dt><dd>${first} 〜 ${last}</dd>
     <dt>イベント件数</dt><dd>${state.events.length}件</dd>
+    <dt>最終更新</dt><dd>${APP_LAST_UPDATED}</dd>
     <dt>保存先</dt><dd>このブラウザのlocalStorage</dd>
   `;
 }
